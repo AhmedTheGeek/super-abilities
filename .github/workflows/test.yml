@@ -1,0 +1,51 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: WP ${{ matrix.wordpress }} / PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        wordpress: [ '6.9', 'latest' ]
+        php: [ '8.0', '8.3' ]
+    env:
+      WP_ENV_CORE: ${{ matrix.wordpress == 'latest' && 'WordPress/WordPress' || format('WordPress/WordPress#{0}', matrix.wordpress) }}
+      WP_ENV_PHP_VERSION: ${{ matrix.php }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Start wp-env
+        run: npx --yes @wordpress/env@latest start
+
+      - name: Run the test suites
+        run: npx --yes @wordpress/env@latest run tests-cli --env-cwd=wp-content/plugins/super-abilities vendor/bin/phpunit
+
+      - name: Stop wp-env
+        if: always()
+        run: npx --yes @wordpress/env@latest stop

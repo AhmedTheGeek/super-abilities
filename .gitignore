@@ -1,0 +1,10 @@
+/vendor/
+/node_modules/
+/dist/
+*.zip
+.phpunit.result.cache
+.phpcs.xml
+phpcs.xml
+phpstan.neon
+phpunit.xml
+.DS_Store

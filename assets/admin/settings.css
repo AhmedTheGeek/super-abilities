@@ -1,0 +1,81 @@
+/**
+ * Super Abilities settings screen.
+ */
+
+.super-abilities-settings .super-abilities-lede {
+	max-width: 44rem;
+}
+
+.super-abilities-status {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	margin: 1em 0 1.5em;
+	max-width: 44rem;
+	padding: 0.5em 1em 1em;
+}
+
+.super-abilities-status h2 {
+	font-size: 14px;
+	margin: 0.75em 0 0.5em;
+}
+
+.super-abilities-status-table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+.super-abilities-status-table th {
+	font-weight: 600;
+	padding: 4px 12px 4px 0;
+	text-align: left;
+	white-space: nowrap;
+	width: 12em;
+}
+
+.super-abilities-status-table td {
+	padding: 4px 0;
+	word-break: break-all;
+}
+
+.super-abilities-risk {
+	border-radius: 3px;
+	display: inline-block;
+	font-size: 11px;
+	font-weight: 400;
+	line-height: 1.6;
+	margin-left: 0.4em;
+	padding: 0 6px;
+	text-transform: uppercase;
+	vertical-align: middle;
+}
+
+.super-abilities-risk-low {
+	background: #edfaef;
+	color: #1e5c2b;
+}
+
+.super-abilities-risk-medium {
+	background: #fcf9e8;
+	color: #6b5200;
+}
+
+.super-abilities-risk-high {
+	background: #fcf0f1;
+	color: #8a1f11;
+}
+
+.super-abilities-module-meta {
+	color: #646970;
+	font-size: 12px;
+	margin: 0.25em 0 0;
+}
+
+.super-abilities-module-meta code {
+	font-size: 11px;
+	padding: 1px 4px;
+}
+
+.super-abilities-unit {
+	color: #646970;
+}

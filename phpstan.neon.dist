@@ -1,0 +1,14 @@
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+	level: 6
+	paths:
+		- src
+		- super-abilities.php
+		- uninstall.php
+	scanFiles:
+		- tests/stubs/abilities-api.php
+	bootstrapFiles:
+		- tests/phpstan-bootstrap.php
+	treatPhpDocTypesAsCertain: false

@@ -297,22 +297,32 @@ class Debug_Log_Read extends Abstract_Ability {
 	 * @return string
 	 */
 	public static function log_path() {
-		if ( ! defined( 'WP_DEBUG_LOG' ) ) {
-			return '';
+		$path = '';
+
+		if ( defined( 'WP_DEBUG_LOG' ) ) {
+			// `constant()` keeps static analysis from assuming the documented bool type.
+			$setting = constant( 'WP_DEBUG_LOG' );
+
+			if ( is_string( $setting ) && '' !== $setting ) {
+				$path = $setting;
+			} elseif ( $setting ) {
+				$path = rtrim( WP_CONTENT_DIR, '/\\' ) . '/debug.log';
+			}
 		}
 
-		// `constant()` keeps static analysis from assuming the documented bool type.
-		$setting = constant( 'WP_DEBUG_LOG' );
-
-		if ( is_string( $setting ) && '' !== $setting ) {
-			return $setting;
-		}
-
-		if ( $setting ) {
-			return rtrim( WP_CONTENT_DIR, '/\\' ) . '/debug.log';
-		}
-
-		return '';
+		/**
+		 * Filters the path of the log `debug-log-read` and `error-triage` read.
+		 *
+		 * Useful when PHP logs somewhere else entirely, for example through an
+		 * `error_log` directive in php.ini. Return an empty string to report logging as
+		 * switched off.
+		 *
+		 * @since 0.1.0
+		 *
+		 * @param string $path Absolute path derived from `WP_DEBUG_LOG`, or an empty
+		 *                     string when logging to a file is off.
+		 */
+		return (string) apply_filters( 'super_abilities_debug_log_path', $path );
 	}
 
 	/**

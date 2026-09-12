@@ -333,13 +333,13 @@ class Audit_Summary extends Abstract_Ability {
 	protected function groups( $table, array $window, $column, $limit ) {
 		global $wpdb;
 
-		$params = array( $window[0], $window[1], 'error', 'denied', (int) $limit );
-
 		/*
 		 * Direct query against our own table: no WordPress API exists for it and an audit
 		 * read must not be served from a stale cache. The table name comes from
 		 * Install::table(), the grouping column is one of the four literals in the GROUPS
-		 * allow list, and every caller supplied value is a bound placeholder.
+		 * allow list, and every caller supplied value is a bound placeholder. The
+		 * arguments below are listed in the order the placeholders appear in the
+		 * statement: the two outcome names inside the SELECT come before the window.
 		 */
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = $wpdb->get_results(
@@ -353,11 +353,11 @@ class Audit_Summary extends Abstract_Ability {
 				GROUP BY {$column}
 				ORDER BY total DESC
 				LIMIT %d",
-				$params[0],
-				$params[1],
-				$params[2],
-				$params[3],
-				$params[4]
+				'error',
+				'denied',
+				$window[0],
+				$window[1],
+				(int) $limit
 			),
 			ARRAY_A
 		);

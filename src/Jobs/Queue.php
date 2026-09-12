@@ -146,7 +146,8 @@ class Queue {
 			);
 		}
 
-		$wp_ability = wp_get_ability( $ability );
+		// `wp_get_ability()` reports an unknown name with `_doing_it_wrong()`, so ask first.
+		$wp_ability = wp_has_ability( $ability ) ? wp_get_ability( $ability ) : null;
 
 		if ( ! $wp_ability instanceof \WP_Ability ) {
 			return Error::make(

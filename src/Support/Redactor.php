@@ -115,12 +115,6 @@ class Redactor {
 			return $text;
 		}
 
-		$secrets = self::secrets();
-
-		if ( ! empty( $secrets ) ) {
-			$text = str_replace( $secrets, self::MASK, $text );
-		}
-
 		$text = (string) preg_replace_callback(
 			'/([a-z0-9_.\-]*(?:key|token|secret|password|authorization))(\s*[:=]\s*)([^\s,;)\]}"\']+)/i',
 			static function ( $matches ) {
@@ -128,6 +122,14 @@ class Redactor {
 			},
 			$text
 		);
+
+		// Mask key/value pairs first: a literal secret that is also an ordinary word
+		// (a DB password of `password`) must not break the key=value detection.
+		$secrets = self::secrets();
+
+		if ( ! empty( $secrets ) ) {
+			$text = str_replace( $secrets, self::MASK, $text );
+		}
 
 		if ( defined( 'ABSPATH' ) ) {
 			$root = untrailingslashit( ABSPATH );

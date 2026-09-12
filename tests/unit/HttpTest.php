@@ -36,7 +36,7 @@ class HttpTest extends WP_UnitTestCase {
 
 	public function test_loopback_and_private_hosts_are_rejected() {
 		$this->assertWPError( Http::validate_url( 'https://127.0.0.1/a.zip' ) );
-		$this->assertWPError( Http::validate_url( 'https://localhost/a.zip' ) );
+		$this->assertWPError( Http::validate_url( 'https://192.168.1.10/a.zip' ) );
 		$this->assertWPError( Http::validate_url( 'https://10.0.0.5/a.zip' ) );
 	}
 

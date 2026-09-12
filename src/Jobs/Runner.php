@@ -93,7 +93,8 @@ class Runner {
 			return;
 		}
 
-		$wp_ability = wp_get_ability( $job->ability() );
+		// `wp_get_ability()` reports an unknown name with `_doing_it_wrong()`, so ask first.
+		$wp_ability = wp_has_ability( $job->ability() ) ? wp_get_ability( $job->ability() ) : null;
 
 		if ( ! $wp_ability instanceof \WP_Ability ) {
 			self::fail_job(

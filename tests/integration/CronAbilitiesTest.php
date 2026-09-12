@@ -91,8 +91,8 @@ class CronAbilitiesTest extends WP_UnitTestCase {
 		$this->assertContains( self::HOOK, $hooks );
 	}
 
-	public function test_cron_run_fires_the_hook_and_reschedules_it() {
-		$timestamp = time() + HOUR_IN_SECONDS;
+	public function test_cron_run_fires_a_due_event_and_reschedules_it() {
+		$timestamp = time() - 60;
 
 		wp_schedule_event( $timestamp, 'hourly', self::HOOK );
 
@@ -112,6 +112,33 @@ class CronAbilitiesTest extends WP_UnitTestCase {
 
 		$this->assertNotFalse( $next, 'A recurring event stays on the schedule.' );
 		$this->assertNotSame( $timestamp, $next, 'The instance that ran was replaced.' );
+		$this->assertGreaterThan( time(), $next, 'The replacement runs in the future.' );
+	}
+
+	/**
+	 * Running a recurring event before it is due must not lose it.
+	 *
+	 * `wp_reschedule_event()` puts a future event back at `time() + interval`, which for
+	 * an event scheduled exactly one interval ahead is the timestamp being unscheduled.
+	 */
+	public function test_cron_run_keeps_a_future_recurring_event_scheduled() {
+		$timestamp = time() + HOUR_IN_SECONDS;
+
+		wp_schedule_event( $timestamp, 'hourly', self::HOOK );
+
+		$result = ( new Cron_Run() )->execute( array( 'hook' => self::HOOK ) );
+
+		$this->assertSame( 1, self::$runs );
+		$this->assertTrue( $result['rescheduled'] );
+
+		$next = wp_next_scheduled( self::HOOK );
+
+		$this->assertNotFalse( $next, 'The recurring event must survive an early run.' );
+		$this->assertGreaterThan( time(), $next );
+
+		$event = $this->events_for( self::HOOK )[0];
+
+		$this->assertSame( 'hourly', $event['schedule'], 'It is still a recurring event.' );
 	}
 
 	public function test_cron_run_passes_the_event_arguments() {

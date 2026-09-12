@@ -178,6 +178,19 @@ class ChecksumsTest extends WP_UnitTestCase {
 		$this->assertTrue( Checksums::hash_matches( array(), 'anything' ) );
 	}
 
+	public function test_sanitize_slug_keeps_real_directory_names_and_strips_separators() {
+		$this->assertSame( 'classic-editor', Checksums::sanitize_slug( ' classic-editor ' ) );
+
+		// Plugin directories on disk may be mixed case; lowercasing would lose them.
+		$this->assertSame( 'My_Plugin.v2', Checksums::sanitize_slug( 'My_Plugin.v2' ) );
+
+		// No separator may survive, so a traversal attempt cannot leave the directory.
+		$this->assertSame( 'etcpasswd', Checksums::sanitize_slug( '../../etc/passwd' ) );
+		$this->assertSame( 'evil', Checksums::sanitize_slug( '/evil' ) );
+		$this->assertSame( '', Checksums::sanitize_slug( '..' ) );
+		$this->assertSame( '', Checksums::sanitize_slug( '' ) );
+	}
+
 	public function test_scan_walks_a_directory_and_reports_relative_paths() {
 		$root = get_temp_dir() . 'sa-checksums-' . wp_generate_password( 8, false );
 

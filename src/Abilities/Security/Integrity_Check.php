@@ -306,7 +306,8 @@ class Integrity_Check extends Abstract_Ability {
 	 */
 	protected function check_plugins( array $input, array $result, $deadline ) {
 		$slugs = Schema::to_string_list( isset( $input['plugins'] ) ? $input['plugins'] : array() );
-		$slugs = array_slice( array_filter( array_map( 'sanitize_key', $slugs ) ), 0, self::MAX_PLUGINS );
+		$slugs = array_values( array_unique( array_filter( array_map( array( Checksums::class, 'sanitize_slug' ), $slugs ) ) ) );
+		$slugs = array_slice( $slugs, 0, self::MAX_PLUGINS );
 
 		if ( empty( $slugs ) ) {
 			$result['status'] = 'unverifiable';

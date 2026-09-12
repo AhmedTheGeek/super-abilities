@@ -196,11 +196,25 @@ class Cron_Run extends Abstract_Ability {
 		$rescheduled = false;
 
 		if ( null !== $event ) {
-			if ( is_string( $event['schedule'] ) && '' !== $event['schedule'] ) {
-				$rescheduled = true === wp_reschedule_event( (int) $event['timestamp'], $event['schedule'], $hook, $run_args );
-			}
-
+			/*
+			 * Core's wp-cron.php and WP-CLI reschedule first and unschedule afterwards.
+			 * That order is only safe for events that are already due: `wp_reschedule_event()`
+			 * puts a future event back at `time() + interval`, which for an event that is not
+			 * due yet can be the very timestamp we are about to unschedule, so the recurring
+			 * event would disappear. Unscheduling the instance we took before writing the next
+			 * one keeps the schedule intact either way.
+			 */
 			wp_unschedule_event( (int) $event['timestamp'], $hook, $run_args );
+
+			if ( is_string( $event['schedule'] ) && '' !== $event['schedule'] ) {
+				wp_reschedule_event( (int) $event['timestamp'], $event['schedule'], $hook, $run_args );
+
+				/*
+				 * The return value is not a reliable signal: `_set_cron_array()` reports failure
+				 * whenever the option value happens not to change. Ask the schedule instead.
+				 */
+				$rescheduled = false !== wp_next_scheduled( $hook, $run_args );
+			}
 		}
 
 		$started = microtime( true );

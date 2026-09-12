@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-09-12
+
+### Fixed
+
+- `audit-summary` bound its query arguments in the wrong order, so `groups[]` was always empty.
+- `cron-run` unscheduled the instance it had just rescheduled when a future recurring event
+  was run early; it now unschedules first and reports `rescheduled` from observed state.
+- Jobs guard `wp_get_ability()` with `wp_has_ability()` so an unregistered target no longer
+  triggers a core incorrect-usage notice.
+- `integrity-check` no longer lowercases plugin slugs, so directories with uppercase letters
+  or dots can be verified.
+- `Redactor` masks key/value pairs before literal secrets, and short DB identifiers are no
+  longer treated as secrets.
+
+### Added
+
+- `super_abilities_debug_log_path` filter, `bin/test-local.sh`, and integration coverage that
+  validates every health and security ability's output against its own schema.
+
 ## [0.1.0] - 2026-09-12
 
 ### Added

@@ -10,7 +10,7 @@ use SuperAbilities\Abilities\Security\Admin_Users_Audit;
 class AdminUsersAuditTest extends WP_UnitTestCase {
 
 	/**
-	 * Id of the administrator whose login is literally `admin`.
+	 * Id of the administrator whose login is the guessable `admin`.
 	 *
 	 * @var int
 	 */
@@ -26,14 +26,33 @@ class AdminUsersAuditTest extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$this->admin_id = self::factory()->user->create(
-			array(
-				'role'         => 'administrator',
-				'user_login'   => 'admin',
-				'user_email'   => 'admin@example.org',
-				'display_name' => 'admin',
-			)
-		);
+		// The test install already ships a user called `admin`, so it is reused rather
+		// than created; creating it again would return a WP_Error.
+		$existing = get_user_by( 'login', 'admin' );
+
+		if ( $existing instanceof WP_User ) {
+			$this->admin_id = (int) $existing->ID;
+
+			wp_update_user(
+				array(
+					'ID'           => $this->admin_id,
+					'role'         => 'administrator',
+					'user_email'   => 'admin@example.org',
+					'display_name' => 'admin',
+				)
+			);
+		} else {
+			$this->admin_id = self::factory()->user->create(
+				array(
+					'role'         => 'administrator',
+					'user_login'   => 'admin',
+					'user_email'   => 'admin@example.org',
+					'display_name' => 'admin',
+				)
+			);
+		}
+
+		$this->assertIsInt( $this->admin_id );
 
 		$this->editor_id = self::factory()->user->create(
 			array(
@@ -86,6 +105,40 @@ class AdminUsersAuditTest extends WP_UnitTestCase {
 		$this->assertNotNull( $user['registered'] );
 	}
 
+	public function test_every_guessable_login_is_flagged() {
+		$ids = array();
+
+		foreach ( Admin_Users_Audit::WEAK_LOGINS as $login ) {
+			if ( 'admin' === $login ) {
+				$ids[ $login ] = $this->admin_id;
+				continue;
+			}
+
+			$ids[ $login ] = self::factory()->user->create(
+				array(
+					'role'       => 'administrator',
+					'user_login' => $login,
+				)
+			);
+		}
+
+		// A login that matches the site name is just as guessable as "admin".
+		$site_login         = sanitize_title( get_bloginfo( 'name' ) );
+		$ids[ $site_login ] = self::factory()->user->create(
+			array(
+				'role'       => 'administrator',
+				'user_login' => $site_login,
+			)
+		);
+
+		$by_id = $this->users_by_id( $this->run_audit() );
+
+		foreach ( $ids as $login => $id ) {
+			$this->assertArrayHasKey( $id, $by_id, $login . ' should be reported' );
+			$this->assertContains( 'weak_login', $by_id[ $id ]['flags'], $login . ' should be flagged as weak' );
+		}
+	}
+
 	public function test_a_strong_login_is_not_flagged() {
 		$strong_id = self::factory()->user->create(
 			array(
@@ -129,8 +182,23 @@ class AdminUsersAuditTest extends WP_UnitTestCase {
 	public function test_summary_counts_admins_and_weak_logins() {
 		$result = $this->run_audit();
 
+		$weak   = 0;
+		$admins = 0;
+
+		foreach ( $result['users'] as $user ) {
+			if ( in_array( 'weak_login', $user['flags'], true ) ) {
+				++$weak;
+			}
+
+			if ( in_array( 'administrator', $user['roles'], true ) ) {
+				++$admins;
+			}
+		}
+
+		$this->assertSame( $weak, $result['summary']['weak_logins'] );
+		$this->assertSame( $admins, $result['summary']['admins'] );
+		$this->assertGreaterThanOrEqual( 1, $result['summary']['weak_logins'] );
 		$this->assertGreaterThanOrEqual( 1, $result['summary']['admins'] );
-		$this->assertSame( 1, $result['summary']['weak_logins'] );
 
 		// The Two Factor plugin is not installed in the test suite, so 2FA is unknown.
 		$this->assertNull( $result['summary']['without_2fa'] );
@@ -163,6 +231,9 @@ class AdminUsersAuditTest extends WP_UnitTestCase {
 			$this->markTestSkipped( 'Application passwords are not available.' );
 		}
 
+		// The test install is not served over HTTPS, where core switches the feature off.
+		add_filter( 'wp_is_application_passwords_available', '__return_true' );
+
 		$created = array();
 
 		for ( $i = 0; $i < 4; $i++ ) {
@@ -171,22 +242,60 @@ class AdminUsersAuditTest extends WP_UnitTestCase {
 				array( 'name' => 'agent-' . $i )
 			);
 
-			$this->assertNotWPError( $new );
+			$this->assertNotWPError( $new, is_wp_error( $new ) ? $new->get_error_message() : '' );
 
 			$created[] = $new;
 		}
 
 		$user = $this->users_by_id( $this->run_audit() )[ $this->admin_id ];
 
+		remove_filter( 'wp_is_application_passwords_available', '__return_true' );
+
 		$this->assertSame( 4, $user['app_passwords']['count'] );
 		$this->assertContains( 'many_app_passwords', $user['flags'] );
+		$this->assertNull( $user['app_passwords']['last_used'] );
 
-		$encoded = wp_json_encode( $user['app_passwords'] );
+		$encoded = (string) wp_json_encode( $user['app_passwords'] );
 
 		foreach ( $created as $new ) {
-			$this->assertStringNotContainsString( $new[0], (string) $encoded );
-			$this->assertStringNotContainsString( $new[1]['uuid'], (string) $encoded );
+			$this->assertStringNotContainsString( $new[0], $encoded );
+			$this->assertStringNotContainsString( $new[1]['uuid'], $encoded );
+			$this->assertStringNotContainsString( $new[1]['password'], $encoded );
 		}
+	}
+
+	public function test_a_recently_used_application_password_is_reported_as_a_date() {
+		if ( ! class_exists( 'WP_Application_Passwords' ) ) {
+			$this->markTestSkipped( 'Application passwords are not available.' );
+		}
+
+		add_filter( 'wp_is_application_passwords_available', '__return_true' );
+
+		$new = WP_Application_Passwords::create_new_application_password(
+			$this->admin_id,
+			array( 'name' => 'agent-used' )
+		);
+
+		$this->assertNotWPError( $new, is_wp_error( $new ) ? $new->get_error_message() : '' );
+
+		// Core only writes `last_used` through its own usage recorder.
+		$before   = time();
+		$recorded = WP_Application_Passwords::record_application_password_usage( $this->admin_id, $new[1]['uuid'] );
+
+		$this->assertNotWPError( $recorded, is_wp_error( $recorded ) ? $recorded->get_error_message() : '' );
+
+		$user = $this->users_by_id( $this->run_audit() )[ $this->admin_id ];
+
+		remove_filter( 'wp_is_application_passwords_available', '__return_true' );
+
+		$this->assertSame( 1, $user['app_passwords']['count'] );
+		$this->assertNotNull( $user['app_passwords']['last_used'] );
+		$this->assertMatchesRegularExpression(
+			'/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/',
+			$user['app_passwords']['last_used']
+		);
+		$this->assertGreaterThanOrEqual( $before, strtotime( $user['app_passwords']['last_used'] ) );
+		$this->assertNotContains( 'many_app_passwords', $user['flags'] );
 	}
 
 	public function test_the_ability_requires_both_capabilities() {
@@ -203,5 +312,6 @@ class AdminUsersAuditTest extends WP_UnitTestCase {
 
 		$this->assertWPError( $denied );
 		$this->assertSame( 403, $denied->get_error_data()['status'] );
+		$this->assertSame( 'insufficient_capability', $denied->get_error_data()['reason'] );
 	}
 }

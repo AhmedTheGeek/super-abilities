@@ -133,7 +133,7 @@ class Checksums {
 	 *                        WordPress.org.
 	 */
 	public static function plugin_checksums( $slug, $version ) {
-		$slug    = sanitize_key( (string) $slug );
+		$slug    = self::sanitize_slug( $slug );
 		$version = trim( (string) $version );
 
 		if ( '' === $slug || '' === $version ) {
@@ -152,7 +152,7 @@ class Checksums {
 		}
 
 		$response = Http::get(
-			sprintf( self::PLUGIN_CHECKSUM_URL, $slug, rawurlencode( $version ) ),
+			sprintf( self::PLUGIN_CHECKSUM_URL, rawurlencode( $slug ), rawurlencode( $version ) ),
 			array(
 				'hosts'     => array( self::CHECKSUM_HOST ),
 				'timeout'   => 15,
@@ -425,6 +425,25 @@ class Checksums {
 			'files'     => $files,
 			'truncated' => $truncated,
 		);
+	}
+
+	/**
+	 * Cleans a plugin directory slug without lowercasing it.
+	 *
+	 * `sanitize_key()` is wrong here: plugin directories on disk may contain uppercase
+	 * letters and dots, and lowercasing them would make the plugin unaddressable. Only
+	 * the characters a directory name may hold are kept, so no separator survives and a
+	 * traversal attempt cannot escape the plugins directory.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param string $slug Raw slug.
+	 * @return string Cleaned slug, empty when nothing usable is left.
+	 */
+	public static function sanitize_slug( $slug ) {
+		$slug = (string) preg_replace( '/[^A-Za-z0-9._-]/', '', trim( (string) $slug ) );
+
+		return ltrim( $slug, '.' );
 	}
 
 	/**

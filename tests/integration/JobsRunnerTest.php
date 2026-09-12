@@ -87,24 +87,26 @@ class JobsRunnerTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Registers the two fixture abilities, whatever state the registry is in.
+	 * Makes sure both fixture abilities are in the registry the plugin reads.
 	 *
-	 * Abilities may only be registered inside `wp_abilities_api_init`, and the
-	 * registry fires that action exactly once per process. The first test in the
-	 * process therefore goes through the real path; later tests would make core and
-	 * our own registrar register everything a second time, so they talk to the
-	 * registry directly instead.
+	 * Neither `did_action()` nor a one-off class level registration can be trusted
+	 * here: the registry fires `wp_abilities_api_init` exactly once per process, the
+	 * WP test case restores `$wp_actions` between tests so the counter goes back to
+	 * zero, and other suites are known to reset the registry singleton. So the state
+	 * is read straight from the registry and only what is missing gets registered.
 	 */
 	protected function register_fixture_abilities() {
 		add_action( 'wp_abilities_api_init', array( $this, 'register_abilities' ) );
 
-		if ( ! did_action( 'wp_abilities_api_init' ) ) {
-			wp_get_abilities();
-
-			return;
+		// Touching the registry builds it when needed, which fires the action above.
+		if ( ! wp_has_ability( self::IDEMPOTENT ) || ! wp_has_ability( self::NON_IDEMPOTENT ) ) {
+			$this->register_abilities();
 		}
 
-		$this->register_abilities();
+		foreach ( array( self::IDEMPOTENT, self::NON_IDEMPOTENT ) as $name ) {
+			$this->assertTrue( wp_has_ability( $name ), "Fixture ability {$name} is not registered." );
+			$this->assertInstanceOf( 'WP_Ability', wp_get_ability( $name ), "Fixture ability {$name} is not readable." );
+		}
 	}
 
 	/**
@@ -114,6 +116,12 @@ class JobsRunnerTest extends WP_UnitTestCase {
 	 * @param array<string, mixed> $args Registration arguments.
 	 */
 	protected function register_one( $name, array $args ) {
+		if ( wp_has_ability( $name ) ) {
+			return;
+		}
+
+		$this->ensure_category( isset( $args['category'] ) ? (string) $args['category'] : '' );
+
 		if ( doing_action( 'wp_abilities_api_init' ) ) {
 			wp_register_ability( $name, $args );
 
@@ -121,6 +129,25 @@ class JobsRunnerTest extends WP_UnitTestCase {
 		}
 
 		WP_Abilities_Registry::get_instance()->register( $name, $args );
+	}
+
+	/**
+	 * Registers the category the fixtures use, when nothing else has.
+	 *
+	 * @param string $slug Category slug.
+	 */
+	protected function ensure_category( $slug ) {
+		if ( '' === $slug || wp_has_ability_category( $slug ) ) {
+			return;
+		}
+
+		WP_Ability_Categories_Registry::get_instance()->register(
+			$slug,
+			array(
+				'label'       => 'Jobs fixtures',
+				'description' => 'Category used by the jobs test fixtures.',
+			)
+		);
 	}
 
 	/**

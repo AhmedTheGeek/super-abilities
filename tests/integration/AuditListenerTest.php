@@ -73,27 +73,14 @@ class AuditListenerTest extends WP_UnitTestCase {
 	 */
 	protected $baseline = 0;
 
-	/**
-	 * The callback registering the fixture abilities.
-	 *
-	 * @var callable|null
-	 */
-	protected $registrar = null;
-
 	public function set_up() {
 		parent::set_up();
 
 		Context::reset();
 
-		$this->baseline  = $this->max_id();
-		$this->registrar = array( $this, 'register_fixtures' );
+		$this->baseline = $this->max_id();
 
-		add_action( 'wp_abilities_api_init', $this->registrar );
-
-		self::reset_registry();
-
-		// Rebuilds the registry, which fires wp_abilities_api_init again.
-		wp_get_abilities();
+		self::register_fixtures();
 	}
 
 	public function tear_down() {
@@ -103,23 +90,55 @@ class AuditListenerTest extends WP_UnitTestCase {
 			$listener->flush();
 		}
 
-		if ( null !== $this->registrar ) {
-			remove_action( 'wp_abilities_api_init', $this->registrar );
-		}
-
-		self::reset_registry();
 		Context::reset();
 
 		parent::tear_down();
 	}
 
 	/**
-	 * Registers one ability of ours and one pretending to belong to another plugin.
+	 * Adds one ability of ours and one pretending to belong to another plugin.
+	 *
+	 * The registry is a singleton for the life of the PHPUnit process and abilities are
+	 * not stored in the database, so the fixtures only have to be registered once. They
+	 * go straight into the registry rather than through `wp_register_ability()`, which
+	 * only works while `wp_abilities_api_init` is firing, and the registry is left
+	 * alone otherwise so that other test classes keep their own fixtures.
 	 */
-	public function register_fixtures() {
-		Plugin::instance()->registrar()->register( new SA_Audit_Fixture_Ability() );
+	protected static function register_fixtures() {
+		// Touching the registry fires wp_abilities_api_init, which runs our Registrar.
+		if ( wp_has_ability( 'super-abilities/audit-fixture' ) && wp_has_ability( 'sa-test/probe' ) ) {
+			return;
+		}
 
-		wp_register_ability(
+		$categories = WP_Ability_Categories_Registry::get_instance();
+
+		if ( $categories instanceof WP_Ability_Categories_Registry && ! $categories->is_registered( 'super-abilities-audit' ) ) {
+			$categories->register(
+				'super-abilities-audit',
+				array(
+					'label'       => 'Audit trail',
+					'description' => 'Audit abilities.',
+				)
+			);
+		}
+
+		$registry = WP_Abilities_Registry::get_instance();
+
+		if ( ! $registry instanceof WP_Abilities_Registry ) {
+			return;
+		}
+
+		if ( ! $registry->is_registered( 'super-abilities/audit-fixture' ) ) {
+			$ability = new SA_Audit_Fixture_Ability();
+
+			$registry->register( $ability->name(), $ability->to_args() );
+		}
+
+		if ( $registry->is_registered( 'sa-test/probe' ) ) {
+			return;
+		}
+
+		$registry->register(
 			'sa-test/probe',
 			array(
 				'label'               => 'Third party probe',
@@ -231,6 +250,9 @@ class AuditListenerTest extends WP_UnitTestCase {
 	}
 
 	public function test_a_denied_attempt_is_not_written_twice_on_shutdown() {
+		// Core calls _doing_it_wrong() whenever a permission callback returns a WP_Error.
+		$this->setExpectedIncorrectUsage( 'WP_Ability::execute' );
+
 		wp_set_current_user( 0 );
 
 		$ability = wp_get_ability( 'super-abilities/audit-fixture' );
@@ -463,18 +485,5 @@ class AuditListenerTest extends WP_UnitTestCase {
 		$module = $this->module();
 
 		return $module instanceof Audit_Module ? $module->listener() : null;
-	}
-
-	/**
-	 * Drops the abilities registry singleton so that `wp_abilities_api_init` fires again.
-	 */
-	protected static function reset_registry() {
-		if ( ! class_exists( 'WP_Abilities_Registry' ) ) {
-			return;
-		}
-
-		$property = new ReflectionProperty( 'WP_Abilities_Registry', 'instance' );
-		$property->setAccessible( true );
-		$property->setValue( null, null );
 	}
 }

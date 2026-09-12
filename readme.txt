@@ -4,7 +4,7 @@ Tags: ai, abilities, mcp, agent, automation
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,6 +45,12 @@ WordPress 6.9 or newer, because that is when the Abilities API landed. On WordPr
 In custom tables prefixed `sa_` and one autoloaded option. Deleting the plugin removes them when the "Delete data" setting is on.
 
 == Changelog ==
+
+= 0.1.1 =
+* Fix: audit-summary group counts were always empty (SQL argument order).
+* Fix: cron-run no longer deletes a future recurring event when it is run early.
+* Fix: jobs no longer trigger a core notice when a target ability is unregistered.
+* Fix: integrity-check accepts plugin directories with uppercase letters or dots.
 
 = 0.1.0 =
 * Initial release.

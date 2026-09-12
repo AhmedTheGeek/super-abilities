@@ -9,7 +9,7 @@
  * @wordpress-plugin
  * Plugin Name:       Super Abilities
  * Description:       Advanced, capability-gated abilities that let AI agents manage a WordPress site through the core Abilities API.
- * Version:           0.1.0
+ * Version:           0.1.1
  * Requires at least: 6.9
  * Requires PHP:      8.0
  * Author:            Ahmed Hussein
@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 0.1.0
  */
-define( 'SUPER_ABILITIES_VERSION', '0.1.0' );
+define( 'SUPER_ABILITIES_VERSION', '0.1.1' );
 
 /**
  * Database schema version. Bump to trigger table upgrades.

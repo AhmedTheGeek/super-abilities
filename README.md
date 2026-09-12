@@ -106,6 +106,20 @@ immediately on any connected site.
 
 ## Development
 
+### Running the tests locally
+
+The suites need a MySQL server and a WordPress core checkout. Write a `wp-tests-config.php`
+(the wp-phpunit README documents the constants), point `WP_PHPUNIT__TESTS_CONFIG` at it and run:
+
+```bash
+composer install
+WP_PHPUNIT__TESTS_CONFIG=/path/to/wp-tests-config.php bin/test-local.sh
+WP_PHPUNIT__TESTS_CONFIG=/path/to/wp-tests-config.php bin/test-local.sh --testsuite unit
+```
+
+CI runs the same suites through wp-env on WordPress 6.9 and latest, PHP 8.0 and 8.3.
+
+
 ```sh
 composer install
 composer lint        # phpcs, WordPress-Extra + Docs, PHPCompatibilityWP 8.0-

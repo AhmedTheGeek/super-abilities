@@ -276,10 +276,10 @@ class ExtensionsPreflightTest extends WP_UnitTestCase {
 		$file = 'sa-folder-fixture/sa-folder-fixture.php';
 
 		if ( ! is_dir( $dir ) ) {
-			mkdir( $dir, 0755, true );
+			mkdir( $dir, 0755, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions -- Plain PHP is correct for a test fixture.
 		}
 
-		file_put_contents( WP_PLUGIN_DIR . '/' . $file, "<?php\n/**\n * Plugin Name: SA Folder Fixture\n * Version: 1.0.0\n */\n" );
+		file_put_contents( WP_PLUGIN_DIR . '/' . $file, "<?php\n/**\n * Plugin Name: SA Folder Fixture\n * Version: 1.0.0\n */\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions -- Plain PHP is correct for a test fixture.
 		wp_cache_delete( 'plugins', 'plugins' );
 
 		try {
@@ -291,8 +291,8 @@ class ExtensionsPreflightTest extends WP_UnitTestCase {
 			$this->assertSame( '', Target::plugin_file( 'sa-nope' ) );
 			$this->assertSame( '', Target::plugin_file( '' ) );
 		} finally {
-			unlink( WP_PLUGIN_DIR . '/' . $file );
-			rmdir( $dir );
+			unlink( WP_PLUGIN_DIR . '/' . $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions -- Plain PHP is correct for cleaning up a test fixture.
+			rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions -- Plain PHP is correct for cleaning up a test fixture.
 			wp_cache_delete( 'plugins', 'plugins' );
 		}
 	}

@@ -24,12 +24,12 @@ registers abilities; the transport is whatever the site already has.
 | `jobs` | on | low | Queue any ability over many inputs and run it in the background under a time budget. |
 | `health` | on | low | Site Health as abilities, parsed debug log, error triage correlated with recent changes, cron list/health/run/unschedule. |
 | `security` | on | low | Core and plugin checksum verification, file permission audit, administrator audit, config hardening review, update overview. |
-| `design` | on (planned v0.2) | medium | Read and write global styles, theme mods, block templates and patterns. |
-| `blocks` | on (planned v0.2) | medium | Read and edit the block tree of a post by path, builder-agnostic, with a preview renderer. |
+| `design` | on | medium | Read and write global styles, theme mods, block templates and patterns. |
+| `blocks` | on | medium | Read and edit the block tree of a post by path, builder-agnostic, with a preview renderer. |
 | `media` | on (planned v0.2) | low | Regenerate and convert images, find unused attachments, audit and set alt text, import from a URL. |
-| `extensions` | **off** (planned v0.2) | high | Plugin and theme install, update and rollback with a pre-flight check, a restore point and a smoke test. |
-| `access` | **off** (planned v0.3) | high | Roles and capabilities: explain, create, grant, revoke, assign. |
-| `redirects` | **off** (planned v0.3) | high | Manage simple redirects with loop and reserved-path guards. |
+| `extensions` | **off** | high | Plugin and theme install, update and rollback with a pre-flight check, a restore point and a smoke test. |
+| `access` | **off** | high | Roles and capabilities: explain, create, grant, revoke, assign. |
+| `redirects` | **off** | high | Manage simple redirects with loop and reserved-path guards. |
 
 `super-abilities/catalog` is always registered and lists every module, including the ones
 that are off, so an agent can tell "this site cannot do that" from "an administrator
@@ -231,6 +231,14 @@ Filters:
 | `super_abilities_ability_args` | `array $args, string $name, Abstract_Ability $ability` | Change the `wp_register_ability()` arguments. |
 | `super_abilities_table_schema` | `array $queries` | Append `CREATE TABLE` statements for `dbDelta()`. |
 | `super_abilities_sanitize_settings` | `array $clean, mixed $input` | Post-process sanitized settings. |
+| `super_abilities_protected_cron_hooks` | `array $hooks` | Cron hooks `cron-unschedule` refuses without `force`. |
+| `super_abilities_debug_log_path` | `string $path` | Where `debug-log-read` looks for the debug log. |
+| `super_abilities_forbidden_block_markup` | `array $fragments` | Markup fragments `template-write` and `pattern-write` refuse. Default `<script`, `<?php`, `<?=`, `</script`. |
+| `super_abilities_protected_theme_mods` | `array $keys` | Theme mods `theme-mods-write` never touches. Default empty. |
+| `super_abilities_protected_extensions` | `array $basenames` | Plugins `extension-deactivate` and `extension-delete` refuse without `force`. Default this plugin. |
+| `super_abilities_protected_roles` | `array $roles` | Roles that cannot be deleted or have capabilities revoked. Default `administrator`. |
+| `super_abilities_forbidden_capabilities` | `array $caps` | Capabilities the `access` module never grants, such as `unfiltered_html` and `edit_plugins`. |
+| `super_abilities_reserved_redirect_paths` | `array $prefixes` | Paths the `redirects` module refuses as a redirect source. |
 
 ## License
 

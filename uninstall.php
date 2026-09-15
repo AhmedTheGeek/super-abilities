@@ -51,10 +51,29 @@ function super_abilities_uninstall_site() {
 		'super_abilities_settings',
 		'super_abilities_db_version',
 		'super_abilities_last_cron_tick',
+		'super_abilities_redirects_table_version',
+		'super_abilities_restore_points',
 	);
 
 	foreach ( $options as $option ) {
 		delete_option( $option );
+	}
+
+	// Restore points are copies of plugin and theme directories under uploads.
+	$uploads = wp_upload_dir( null, false );
+
+	if ( is_array( $uploads ) && ! empty( $uploads['basedir'] ) ) {
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+
+		if ( WP_Filesystem() ) {
+			global $wp_filesystem;
+
+			$restore_dir = untrailingslashit( (string) $uploads['basedir'] ) . '/super-abilities';
+
+			if ( $wp_filesystem->is_dir( $restore_dir ) ) {
+				$wp_filesystem->delete( $restore_dir, true );
+			}
+		}
 	}
 
 	// Our transients all share one prefix; delete the option rows behind them.

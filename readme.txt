@@ -4,7 +4,7 @@ Tags: ai, abilities, mcp, agent, automation
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 0.1.1
+Stable tag: 0.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -42,9 +42,16 @@ WordPress 6.9 or newer, because that is when the Abilities API landed. On WordPr
 
 = Where is the data stored? =
 
-In custom tables prefixed `sa_` and one autoloaded option. Deleting the plugin removes them when the "Delete data" setting is on.
+In custom tables prefixed `sa_`, one autoloaded option, a non-autoloaded option listing restore points, and restore point copies under `uploads/super-abilities/`. Deleting the plugin removes them when the "Delete data" setting is on.
 
 == Changelog ==
+
+= 0.2.0 =
+* New: Design module: global styles, theme mods, block templates and patterns (12 abilities).
+* New: Blocks module: read and edit a post's block tree by path, with a preview renderer (8 abilities).
+* New: Extensions module (off by default): install, update, activate, delete and roll back plugins and themes with a pre-flight check, restore points and a smoke test (10 abilities).
+* New: Access module (off by default): roles and capabilities with anti-escalation guards (9 abilities).
+* New: Redirects module (off by default): managed redirects with loop and reserved-path guards (8 abilities).
 
 = 0.1.1 =
 * Fix: audit-summary group counts were always empty (SQL argument order).

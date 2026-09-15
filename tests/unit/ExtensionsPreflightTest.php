@@ -270,12 +270,31 @@ class ExtensionsPreflightTest extends WP_UnitTestCase {
 	}
 
 	public function test_target_resolves_plugins_by_file_and_by_folder() {
-		$this->assertSame( 'hello.php', Target::plugin_file( 'hello.php' ) );
-		$this->assertSame( 'hello.php', Target::plugin_file( 'hello' ) );
-		$this->assertSame( 'akismet/akismet.php', Target::plugin_file( 'akismet' ) );
-		$this->assertSame( 'akismet/akismet.php', Target::plugin_file( 'akismet/akismet.php' ) );
-		$this->assertSame( '', Target::plugin_file( 'sa-nope' ) );
-		$this->assertSame( '', Target::plugin_file( '' ) );
+		// Folder plugins are not guaranteed to exist in every test environment (wp-env ships
+		// without Akismet), so create a throwaway one instead of relying on a bundled plugin.
+		$dir  = WP_PLUGIN_DIR . '/sa-folder-fixture';
+		$file = 'sa-folder-fixture/sa-folder-fixture.php';
+
+		if ( ! is_dir( $dir ) ) {
+			mkdir( $dir, 0755, true );
+		}
+
+		file_put_contents( WP_PLUGIN_DIR . '/' . $file, "<?php\n/**\n * Plugin Name: SA Folder Fixture\n * Version: 1.0.0\n */\n" );
+		wp_cache_delete( 'plugins', 'plugins' );
+
+		try {
+			$this->assertSame( 'hello.php', Target::plugin_file( 'hello.php' ) );
+			$this->assertSame( 'hello.php', Target::plugin_file( 'hello' ) );
+			$this->assertSame( $file, Target::plugin_file( 'sa-folder-fixture' ) );
+			$this->assertSame( $file, Target::plugin_file( $file ) );
+			$this->assertSame( $file, Target::plugin_file( '/' . $file ), 'A leading slash is tolerated.' );
+			$this->assertSame( '', Target::plugin_file( 'sa-nope' ) );
+			$this->assertSame( '', Target::plugin_file( '' ) );
+		} finally {
+			unlink( WP_PLUGIN_DIR . '/' . $file );
+			rmdir( $dir );
+			wp_cache_delete( 'plugins', 'plugins' );
+		}
 	}
 
 	public function test_target_derives_the_wporg_slug_from_a_plugin_file() {
